@@ -28,7 +28,9 @@ func (c *Context) sendMessage(resp Response) {
 // 返回数据
 func (c *Context) Reply(data interface{}) {
 	resp := Response{
-		ID: c.Request.ID,
+		Method: c.Request.Method,
+		ID:     c.Request.ID,
+		Error:  nil,
 	}
 	resp.SetResult(data)
 	c.sendMessage(resp)
@@ -57,8 +59,26 @@ func (c *Context) Notify(data interface{}) {
 	resp := Response{
 		Method: c.Request.Method,
 		ID:     0,
+		Error:  nil,
 	}
 	resp.SetResult(data)
+	c.sendMessage(resp)
+}
+
+func (c *Context) NotifyError(code int, msg string, data ...interface{}) {
+	var errData interface{}
+	if len(data) > 0 {
+		errData = data[0]
+	}
+	resp := Response{
+		Method: c.Request.Method,
+		ID:     c.Request.ID,
+		Error: &Error{
+			Code:    code,
+			Message: msg,
+			Data:    errData,
+		},
+	}
 	c.sendMessage(resp)
 }
 

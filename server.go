@@ -37,25 +37,25 @@ func NewServer() *Server {
 func (s *Server) Serve(w http.ResponseWriter, r *http.Request) {
 	c, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("[wnet-debug]: websocket upgrader err: %v", err)
+		log.Printf("[win-debug]: websocket upgrader err: %v", err)
 		return
 	}
 
 	if len(s.clients) > config.MaxConn {
-		log.Printf("[wnet-debug]: max connections limit: %d", config.MaxConn)
+		log.Printf("[win-debug]: max connections limit: %d", config.MaxConn)
 		c.Close()
 		return
 	}
 
 	cid := s.connId.Get()
 	conn := NewConn(s, cid, c, s.msgHandler)
-	log.Printf("[wnet-debug]: new Conn, id: %d", cid)
+	log.Printf("[win-debug]: new Conn, id: %d", cid)
 
 	go conn.Start()
 }
 
 func (s *Server) Close() {
-	log.Printf("[wnet-debug]: Server close")
+	log.Printf("[win-debug]: Server close")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for id, conn := range s.clients {

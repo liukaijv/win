@@ -9,7 +9,7 @@ import (
 var jsonNull = json.RawMessage("null")
 
 type (
-	HandlerFunc    func(ctx Context)
+	HandlerFunc func(ctx Context)
 	MiddlewareFunc func(h HandlerFunc) HandlerFunc
 )
 
@@ -66,6 +66,16 @@ func (r *Request) SetParams(v interface{}) error {
 	return nil
 }
 
+func (r *Request) SetHeaders(headers map[string]interface{}) error {
+	if r.Headers == nil {
+		r.Headers = map[string]interface{}{}
+	}
+	for k, v := range headers {
+		r.Headers[k] = v
+	}
+	return nil
+}
+
 type Response struct {
 	Method  string                 `json:"method"`
 	ID      int64                  `json:"id"`
@@ -108,6 +118,16 @@ func (r *Response) SetResult(v interface{}) error {
 		return err
 	}
 	r.Result = (*json.RawMessage)(&b)
+	return nil
+}
+
+func (r *Response) SetHeaders(headers map[string]interface{}) error {
+	if r.Headers == nil {
+		r.Headers = map[string]interface{}{}
+	}
+	for k, v := range headers {
+		r.Headers[k] = v
+	}
 	return nil
 }
 
