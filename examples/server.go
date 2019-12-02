@@ -20,6 +20,7 @@ func Hello(c win.Context) {
 	if err != nil {
 		c.ReplyError(200, err.Error())
 	}
+	helloRequest.Name = fmt.Sprintf("%s%d", helloRequest.Name, c.Request.ID)
 	c.Reply(helloRequest)
 }
 

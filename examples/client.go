@@ -15,23 +15,30 @@ func main() {
 	}
 	defer client.Close()
 
-	var reply struct {
-		Name string
+	for i := 1; i < 10000; i++ {
+		go func() {
+
+			var reply struct {
+				Name string
+			}
+
+			helloRequest := struct {
+				Name string
+			}{
+				Name: "haha",
+			}
+
+			err = client.Call("hello", helloRequest, &reply)
+
+			if err != nil {
+				fmt.Printf("err %v\n", err)
+				return
+			}
+
+			fmt.Printf("response %+v\n", reply)
+		}()
 	}
 
-	helloRequest := struct {
-		Name string
-	}{
-		Name: "haha",
-	}
-
-	err = client.Call("hello", helloRequest, &reply)
-
-	if err != nil {
-		fmt.Printf("err %v\n", err)
-		return
-	}
-
-	fmt.Printf("response %+v\n", reply)
+	select {}
 
 }

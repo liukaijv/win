@@ -15,9 +15,9 @@ type Conn struct {
 	pool       sync.Pool
 	sendChan   chan Response
 	exitChan   chan bool
-	closing    bool
 	mu         sync.Mutex
-	sending    sync.Mutex
+	closing    bool
+	storeMu    sync.Mutex
 	store      map[string]interface{}
 }
 
@@ -41,11 +41,14 @@ func (c *Conn) Start() {
 	log.Printf("[win-debug]: Conn %d start", c.Id)
 	go c.readMessages()
 	go c.writeMessages()
+	if c.Server.connStartCallback != nil {
+		c.Server.connStartCallback(c)
+	}
 }
 
 func (c *Conn) Close() {
-	c.mu.Lock()
 	defer log.Printf("[win-debug]: Conn %d closed", c.Id)
+	c.mu.Lock()
 	if c.closing {
 		c.mu.Unlock()
 		return
@@ -54,6 +57,10 @@ func (c *Conn) Close() {
 	c.mu.Unlock()
 
 	c.exitChan <- true
+
+	if c.Server.connCloseCallback != nil {
+		c.Server.connCloseCallback(c)
+	}
 
 	c.Conn.Close()
 	c.Server.connId.Release(c.Id)
@@ -120,17 +127,18 @@ func (c *Conn) writeMessages() {
 // 发送数据
 func (c *Conn) SendMessage(resp Response) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	if c.closing {
+		c.mu.Unlock()
 		log.Printf("[win-debug]: Conn closed when send message")
 		return
 	}
+	c.mu.Unlock()
 	c.sendChan <- resp
 }
 
 // 取值
 func (c *Conn) Get(key string) (interface{}, error) {
-	defer c.mu.Unlock()
+	defer c.storeMu.Unlock()
 	if val, ok := c.store[key]; ok {
 		return val, nil
 	}
@@ -139,8 +147,8 @@ func (c *Conn) Get(key string) (interface{}, error) {
 
 // 设置值
 func (c *Conn) Set(key string, val interface{}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.storeMu.Lock()
+	defer c.storeMu.Unlock()
 	if c.store == nil {
 		c.store = make(map[string]interface{})
 	}

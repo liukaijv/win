@@ -52,7 +52,10 @@ func Dial(urlStr string, requestHeader http.Header) (*Client, error) {
 		timeout:  5000,
 	}
 
-	go cli.readMessages()
+	waitGroup := sync.WaitGroup{}
+	waitGroup.Add(1)
+	go cli.readMessages(&waitGroup)
+	waitGroup.Wait()
 	return cli, nil
 }
 
@@ -78,9 +81,10 @@ func (c *Client) AddHandler(name string, h ClientHandler) {
 	log.Printf("[win-debug]: add handler %s", name)
 }
 
-func (c *Client) readMessages() {
+func (c *Client) readMessages(waitGroup *sync.WaitGroup) {
 	log.Printf("[win-debug]: goroutine readMessages runing")
 	defer log.Printf("[win-debug]: goroutine readMessages closed")
+	waitGroup.Done()
 	for {
 		var resp Response
 		err := c.conn.ReadJSON(&resp)
@@ -156,7 +160,9 @@ func (c *Client) sendMessage(request *Request, wait bool) (cc *call, err error) 
 			request.ID = c.seq
 		}
 		id = request.ID
+		c.mu.Lock()
 		c.pending[id] = cc
+		c.mu.Unlock()
 	}
 
 	defer func() {
@@ -177,7 +183,7 @@ func (c *Client) sendMessage(request *Request, wait bool) (cc *call, err error) 
 }
 
 // 发起请求，阻塞到数据返回或超时
-func (c *Client) Call(method string, params, reply interface{}, opts ... *CallOpt) error {
+func (c *Client) Call(method string, params, reply interface{}, opts ...*CallOpt) error {
 	req := Request{
 		Method: method,
 	}
@@ -228,7 +234,7 @@ func (c *Client) Call(method string, params, reply interface{}, opts ... *CallOp
 }
 
 // 发送不需要返回
-func (c *Client) Notify(method string, params interface{}, opts ... *CallOpt) error {
+func (c *Client) Notify(method string, params interface{}, opts ...*CallOpt) error {
 	req := Request{
 		Method: method,
 	}

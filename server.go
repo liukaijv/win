@@ -11,11 +11,13 @@ import (
 )
 
 type Server struct {
-	mu         sync.RWMutex
-	clients    map[uint32]*Conn
-	msgHandler *MsgHandler
-	upgrader   *websocket.Upgrader
-	connId     *connId
+	mu                sync.RWMutex
+	clients           map[uint32]*Conn
+	msgHandler        *MsgHandler
+	upgrader          *websocket.Upgrader
+	connId            *connId
+	connStartCallback func(conn *Conn)
+	connCloseCallback func(conn *Conn)
 }
 
 func NewServer() *Server {
@@ -86,6 +88,14 @@ func (s *Server) Use(middleware ...MiddlewareFunc) {
 
 func (s *Server) AddHandler(name string, h HandlerFunc, middleware ...MiddlewareFunc) {
 	s.msgHandler.HandlerFunc(name, h, middleware...)
+}
+
+func (s *Server) SetConnStartCallback(callback func(conn *Conn)) {
+	s.connStartCallback = callback
+}
+
+func (s *Server) SetConnCloseCallback(callback func(conn *Conn)) {
+	s.connCloseCallback = callback
 }
 
 func isAllowedOrigin(r *http.Request, allowedOrigins []*regexp.Regexp) bool {
