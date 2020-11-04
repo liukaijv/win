@@ -63,7 +63,7 @@ func (c *Conn) Close() {
 	}
 
 	c.Conn.Close()
-	c.Server.connId.Release(c.Id)
+	c.Server.connId = 0
 	c.Server.remove(c.Id)
 	close(c.exitChan)
 	close(c.sendChan)
@@ -97,7 +97,7 @@ func (c *Conn) readMessages() {
 		if c.msgHandler.workerPoolSize > 0 {
 			c.msgHandler.SendToTaskQueue(*ctx)
 		} else {
-			c.msgHandler.DoHandler(*ctx)
+			go c.msgHandler.DoHandler(*ctx)
 		}
 
 		c.pool.Put(ctx)

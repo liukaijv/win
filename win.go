@@ -9,7 +9,7 @@ import (
 var jsonNull = json.RawMessage("null")
 
 type (
-	HandlerFunc func(ctx Context)
+	HandlerFunc    func(ctx Context)
 	MiddlewareFunc func(h HandlerFunc) HandlerFunc
 )
 

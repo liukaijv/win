@@ -15,7 +15,7 @@ type Server struct {
 	clients           map[uint32]*Conn
 	msgHandler        *MsgHandler
 	upgrader          *websocket.Upgrader
-	connId            *connId
+	connId            uint32
 	connStartCallback func(conn *Conn)
 	connCloseCallback func(conn *Conn)
 }
@@ -25,7 +25,7 @@ func NewServer() *Server {
 		clients:    make(map[uint32]*Conn),
 		msgHandler: NewMsgHandler(),
 		upgrader:   newUpgrader(config.AllowedOrigins),
-		connId:     NewConnId(),
+		connId:     0,
 	}
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
@@ -49,9 +49,9 @@ func (s *Server) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cid := s.connId.Get()
-	conn := NewConn(s, cid, c, s.msgHandler)
-	log.Printf("[win-debug]: new Conn, id: %d", cid)
+	s.connId++
+	conn := NewConn(s, s.connId, c, s.msgHandler)
+	log.Printf("[win-debug]: new Conn, id: %d", s.connId)
 
 	go conn.Start()
 }
