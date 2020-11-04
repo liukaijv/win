@@ -90,8 +90,8 @@ func (s *Server) AddHandler(name string, h HandlerFunc, middleware ...Middleware
 	s.msgHandler.HandlerFunc(name, h, middleware...)
 }
 
-func (s *Server) NewGroup() Group {
-	return newGroup(s)
+func (s *Server) NewGroup(prefix string) Group {
+	return newGroup(prefix, s)
 }
 
 func (s *Server) SetConnStartCallback(callback func(conn *Conn)) {

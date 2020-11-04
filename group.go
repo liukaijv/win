@@ -8,9 +8,9 @@ type Group struct {
 	middleware []MiddlewareFunc
 }
 
-func newGroup(server *Server) Group {
+func newGroup(prefix string, server *Server) Group {
 	return Group{
-		prefix:     "",
+		prefix:     prefix,
 		server:     server,
 		middleware: []MiddlewareFunc{},
 	}
