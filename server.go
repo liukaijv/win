@@ -13,7 +13,7 @@ import (
 type Server struct {
 	mu                sync.RWMutex
 	clients           map[uint32]*Conn
-	msgHandler        *MsgHandler
+	msgHandler        *msgHandler
 	upgrader          *websocket.Upgrader
 	connId            uint32
 	connStartCallback func(conn *Conn)
@@ -23,7 +23,7 @@ type Server struct {
 func NewServer() *Server {
 	s := &Server{
 		clients:    make(map[uint32]*Conn),
-		msgHandler: NewMsgHandler(),
+		msgHandler: newMsgHandler(),
 		upgrader:   newUpgrader(config.AllowedOrigins),
 		connId:     0,
 	}
@@ -88,6 +88,10 @@ func (s *Server) Use(middleware ...MiddlewareFunc) {
 
 func (s *Server) AddHandler(name string, h HandlerFunc, middleware ...MiddlewareFunc) {
 	s.msgHandler.HandlerFunc(name, h, middleware...)
+}
+
+func (s *Server) NewGroup() Group {
+	return newGroup(s)
 }
 
 func (s *Server) SetConnStartCallback(callback func(conn *Conn)) {

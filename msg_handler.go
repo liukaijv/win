@@ -4,15 +4,15 @@ import (
 	"log"
 )
 
-type MsgHandler struct {
+type msgHandler struct {
 	handlers       map[string]HandlerFunc
 	middleware     []MiddlewareFunc
 	workerPoolSize uint32
 	taskQueue      []chan Context
 }
 
-func NewMsgHandler() *MsgHandler {
-	m := &MsgHandler{
+func newMsgHandler() *msgHandler {
+	m := &msgHandler{
 		handlers:       make(map[string]HandlerFunc),
 		middleware:     make([]MiddlewareFunc, 0),
 		workerPoolSize: config.WorkerPoolSize,
@@ -22,11 +22,11 @@ func NewMsgHandler() *MsgHandler {
 }
 
 // 使用中间件
-func (m *MsgHandler) Use(middleware ...MiddlewareFunc) {
+func (m *msgHandler) Use(middleware ...MiddlewareFunc) {
 	m.middleware = append(m.middleware, middleware...)
 }
 
-func (m *MsgHandler) HandlerFunc(name string, h HandlerFunc, middleware ...MiddlewareFunc) {
+func (m *msgHandler) HandlerFunc(name string, h HandlerFunc, middleware ...MiddlewareFunc) {
 	if _, ok := m.handlers[name]; ok {
 		panic("Repeated handler name: " + name)
 	}
@@ -34,7 +34,7 @@ func (m *MsgHandler) HandlerFunc(name string, h HandlerFunc, middleware ...Middl
 	m.handlers[name] = applyMiddleware(h, middleware...)
 }
 
-func (m *MsgHandler) DoHandler(c Context) {
+func (m *msgHandler) DoHandler(c Context) {
 	log.Printf("[win-debug]: invoke handler %s", c.Request.Method)
 	h, ok := m.handlers[c.Request.Method]
 	if !ok {
@@ -45,13 +45,13 @@ func (m *MsgHandler) DoHandler(c Context) {
 	h(c)
 }
 
-func (m *MsgHandler) SendToTaskQueue(c Context) {
+func (m *msgHandler) SendToTaskQueue(c Context) {
 	workerId := c.Conn.Id % m.workerPoolSize
 	log.Printf("[win-debug]: send message to worker, worker id: %d", workerId)
 	m.taskQueue[workerId] <- c
 }
 
-func (m *MsgHandler) StartWorker(i uint32, taskQueue chan Context) {
+func (m *msgHandler) StartWorker(i uint32, taskQueue chan Context) {
 	for {
 		select {
 		case ctx := <-taskQueue:
@@ -60,7 +60,7 @@ func (m *MsgHandler) StartWorker(i uint32, taskQueue chan Context) {
 	}
 }
 
-func (m *MsgHandler) StartWorkerPool() {
+func (m *msgHandler) StartWorkerPool() {
 	log.Printf("[win-debug]: start worker poll, size: %d", m.workerPoolSize)
 	var i uint32
 	for i = 0; i < m.workerPoolSize; i++ {

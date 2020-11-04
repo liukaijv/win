@@ -11,7 +11,7 @@ type Conn struct {
 	Id         uint32
 	Server     *Server
 	Conn       *websocket.Conn
-	msgHandler *MsgHandler
+	msgHandler *msgHandler
 	pool       sync.Pool
 	sendChan   chan Response
 	exitChan   chan bool
@@ -21,7 +21,7 @@ type Conn struct {
 	store      map[string]interface{}
 }
 
-func NewConn(server *Server, id uint32, conn *websocket.Conn, msgHandler *MsgHandler) *Conn {
+func NewConn(server *Server, id uint32, conn *websocket.Conn, msgHandler *msgHandler) *Conn {
 	c := &Conn{
 		Id:         id,
 		Server:     server,
