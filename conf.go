@@ -1,28 +1,40 @@
 package win
 
-type Config struct {
-	WorkerPoolSize uint32
-	WorkerTaskMax  uint32
-	AllowedOrigins []string
-	MaxConn        int
+type globalConfig struct {
+	workerPoolSize uint32
+	workerTaskMax  uint32
+	allowedOrigins []string
+	maxConn        int
 }
 
-var config Config
+var config globalConfig
 
 func init() {
 	config = defaultConfig()
 }
 
-func defaultConfig() Config {
+func defaultConfig() globalConfig {
 
-	return Config{
-		WorkerPoolSize: 0,
-		WorkerTaskMax:  1024,
-		AllowedOrigins: []string{},
-		MaxConn:        5000,
+	return globalConfig{
+		workerPoolSize: 0,
+		workerTaskMax:  1024,
+		allowedOrigins: []string{},
+		maxConn:        5000,
 	}
 }
 
-func SetConfig(conf Config) {
-	config = conf
+func SetPoolSize(pollSize uint32) {
+	config.workerPoolSize = pollSize
+}
+
+func SetTaskSize(taskSize uint32) {
+	config.workerTaskMax = taskSize
+}
+
+func SetAllowedOrigins(origins []string) {
+	config.allowedOrigins = origins
+}
+
+func SetMaxConn(maxConn int) {
+	config.maxConn = maxConn
 }

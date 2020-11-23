@@ -62,7 +62,7 @@ func Dial(urlStr string, requestHeader http.Header) (*Client, error) {
 func (c *Client) Close() {
 	err := c.conn.Close()
 	if err != nil {
-		log.Printf("[win-debug]: client close err: %v", err)
+		log.Printf("[win-debug]: client Close err: %v", err)
 	}
 	c.exitChan <- true
 	close(c.exitChan)
@@ -90,7 +90,7 @@ func (c *Client) readMessages(waitGroup *sync.WaitGroup) {
 		err := c.conn.ReadJSON(&resp)
 		if err != nil {
 			if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[win-debug]: Conn has closed: %v", err)
+				log.Printf("[win-debug]: conn has closed: %v", err)
 				break
 			} else {
 				log.Printf("[win-debug]: read message error: %v", err)
@@ -107,7 +107,7 @@ func (c *Client) readMessages(waitGroup *sync.WaitGroup) {
 
 	c.mu.Lock()
 	for _, call := range c.pending {
-		call.done <- errors.New("client close")
+		call.done <- errors.New("client Close")
 		close(call.done)
 	}
 	c.mu.Unlock()
@@ -215,7 +215,7 @@ func (c *Client) Call(method string, params, reply interface{}, opts ...*CallOpt
 	select {
 	case err, ok := <-call.done:
 		if !ok {
-			return errors.New("Conn has closed")
+			return errors.New("conn has closed")
 		}
 		if err != nil {
 			return err

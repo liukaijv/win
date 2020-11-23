@@ -16,7 +16,7 @@ func Hello(c win.Context) {
 	var helloRequest struct {
 		Name string
 	}
-	err := c.Bind(&helloRequest)
+	err := c.BindJson(&helloRequest)
 	if err != nil {
 		c.ReplyError(200, err.Error())
 	}

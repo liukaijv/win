@@ -18,20 +18,26 @@ type Server struct {
 	connId            uint32
 	connStartCallback func(conn *Conn)
 	connCloseCallback func(conn *Conn)
+	handshakeHandler  func(r *http.Request) bool
+	notFoundHandler   HandlerFunc
 }
 
 func NewServer() *Server {
 	s := &Server{
 		clients:    make(map[uint32]*Conn),
 		msgHandler: newMsgHandler(),
-		upgrader:   newUpgrader(config.AllowedOrigins),
-		connId:     0,
+		upgrader: newUpgrader(config.allowedOrigins, func(r *http.Request) bool {
+			return true
+		}),
+		connId: 0,
 	}
+
+	s.msgHandler.notFoundHandler = s.notFoundHandler
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	// 开启Workers
-	if config.WorkerPoolSize > 0 {
-		go s.msgHandler.StartWorkerPool()
+	if config.workerPoolSize > 0 {
+		go s.msgHandler.startWorkerPool()
 	}
 	return s
 }
@@ -43,21 +49,21 @@ func (s *Server) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(s.clients) > config.MaxConn {
-		log.Printf("[win-debug]: max connections limit: %d", config.MaxConn)
+	if len(s.clients) > config.maxConn {
+		log.Printf("[win-debug]: max connections limit: %d", config.maxConn)
 		c.Close()
 		return
 	}
 
 	s.connId++
-	conn := NewConn(s, s.connId, c, s.msgHandler)
-	log.Printf("[win-debug]: new Conn, id: %d", s.connId)
+	conn := newConn(s, s.connId, c, s.msgHandler)
+	log.Printf("[win-debug]: new conn, id: %d", s.connId)
 
-	go conn.Start()
+	go conn.start()
 }
 
 func (s *Server) Close() {
-	log.Printf("[win-debug]: Server close")
+	log.Printf("[win-debug]: Server Close")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for id, conn := range s.clients {
@@ -83,23 +89,31 @@ func (s *Server) Len() int {
 }
 
 func (s *Server) Use(middleware ...MiddlewareFunc) {
-	s.msgHandler.Use(middleware...)
+	s.msgHandler.use(middleware...)
 }
 
 func (s *Server) AddHandler(name string, h HandlerFunc, middleware ...MiddlewareFunc) {
-	s.msgHandler.HandlerFunc(name, h, middleware...)
+	s.msgHandler.handlerFunc(name, h, middleware...)
 }
 
-func (s *Server) NewGroup(prefix string) Group {
-	return newGroup(prefix, s)
+func (s *Server) Group(prefix string, middleware ...MiddlewareFunc) Group {
+	return newGroup(prefix, s, middleware...)
 }
 
-func (s *Server) SetConnStartCallback(callback func(conn *Conn)) {
-	s.connStartCallback = callback
+func (s *Server) SetConnStartHandler(handler func(conn *Conn)) {
+	s.connStartCallback = handler
 }
 
-func (s *Server) SetConnCloseCallback(callback func(conn *Conn)) {
-	s.connCloseCallback = callback
+func (s *Server) SetConnCloseHandler(handler func(conn *Conn)) {
+	s.connCloseCallback = handler
+}
+
+func (s *Server) SetHandshakeHandler(handler func(r *http.Request) bool) {
+	s.handshakeHandler = handler
+}
+
+func (s *Server) SetNotFoundHandler(handler HandlerFunc) {
+	s.notFoundHandler = handler
 }
 
 func isAllowedOrigin(r *http.Request, allowedOrigins []*regexp.Regexp) bool {
@@ -126,13 +140,13 @@ func isAllowedOrigin(r *http.Request, allowedOrigins []*regexp.Regexp) bool {
 	return false
 }
 
-func newUpgrader(allowedWebSocketOrigins []string) *websocket.Upgrader {
+func newUpgrader(allowedWebSocketOrigins []string, handshakeHandler func(r *http.Request) bool) *websocket.Upgrader {
 	compiledAllowedOrigins := compileAllowedWebSocketOrigins(allowedWebSocketOrigins)
 	return &websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 		CheckOrigin: func(r *http.Request) bool {
-			return isAllowedOrigin(r, compiledAllowedOrigins)
+			return isAllowedOrigin(r, compiledAllowedOrigins) && handshakeHandler(r)
 		},
 	}
 }

@@ -22,22 +22,25 @@ type Request struct {
 
 func (r Request) MarshalJSON() ([]byte, error) {
 	r2 := struct {
-		Method string           `json:"method"`
-		Params *json.RawMessage `json:"params,omitempty"`
-		ID     int64            `json:"id"`
+		Method  string                 `json:"method"`
+		Params  *json.RawMessage       `json:"params,omitempty"`
+		ID      int64                  `json:"id"`
+		Headers map[string]interface{} `json:"headers"`
 	}{
-		Method: r.Method,
-		Params: r.Params,
-		ID:     r.ID,
+		Method:  r.Method,
+		Params:  r.Params,
+		ID:      r.ID,
+		Headers: r.Headers,
 	}
 	return json.Marshal(r2)
 }
 
 func (r *Request) UnmarshalJSON(data []byte) error {
 	var r2 struct {
-		Method string           `json:"method"`
-		Params *json.RawMessage `json:"params,omitempty"`
-		ID     int64            `json:"id"`
+		Method  string                 `json:"method"`
+		Params  *json.RawMessage       `json:"params,omitempty"`
+		ID      int64                  `json:"id"`
+		Headers map[string]interface{} `json:"headers"`
 	}
 
 	r2.Params = &json.RawMessage{}
@@ -54,6 +57,7 @@ func (r *Request) UnmarshalJSON(data []byte) error {
 		r.Params = r2.Params
 	}
 	r.ID = r2.ID
+	r.Headers = r2.Headers
 	return nil
 }
 
@@ -72,6 +76,16 @@ func (r *Request) SetHeaders(headers map[string]interface{}) error {
 	}
 	for k, v := range headers {
 		r.Headers[k] = v
+	}
+	return nil
+}
+
+func (r *Request) GetHeader(key string) interface{} {
+	if r.Headers == nil {
+		return nil
+	}
+	if val, ok := r.Headers[key]; ok {
+		return val
 	}
 	return nil
 }
@@ -112,7 +126,7 @@ func (r *Response) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (r *Response) SetResult(v interface{}) error {
+func (r *Response) setResult(v interface{}) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -121,7 +135,7 @@ func (r *Response) SetResult(v interface{}) error {
 	return nil
 }
 
-func (r *Response) SetHeaders(headers map[string]interface{}) error {
+func (r *Response) setHeaders(headers map[string]interface{}) error {
 	if r.Headers == nil {
 		r.Headers = map[string]interface{}{}
 	}

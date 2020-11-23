@@ -32,7 +32,7 @@ func (c *Context) Reply(data interface{}) {
 		ID:     c.Request.ID,
 		Error:  nil,
 	}
-	resp.SetResult(data)
+	resp.setResult(data)
 	c.sendMessage(resp)
 }
 
@@ -61,7 +61,7 @@ func (c *Context) Notify(data interface{}) {
 		ID:     0,
 		Error:  nil,
 	}
-	resp.SetResult(data)
+	resp.setResult(data)
 	c.sendMessage(resp)
 }
 
@@ -84,16 +84,16 @@ func (c *Context) NotifyError(code int, msg string, data ...interface{}) {
 
 // 取值
 func (c *Context) Get(key string) (interface{}, error) {
-	return c.Conn.Get(key)
+	return c.Conn.get(key)
 }
 
 // 设置值
 func (c *Context) Set(key string, val interface{}) {
-	c.Conn.Set(key, val)
+	c.Conn.set(key, val)
 }
 
-func (c *Context) Bind(params interface{}) error {
-	if err := json.Unmarshal(*c.Request.Params, params); err != nil {
+func (c *Context) BindJson(ptr interface{}) error {
+	if err := json.Unmarshal(*c.Request.Params, ptr); err != nil {
 		return err
 	}
 	return nil
